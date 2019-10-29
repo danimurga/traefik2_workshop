@@ -1,0 +1,34 @@
+## Default values for Traefik
+image:
+  name: traefik
+  tag: 2.0.2
+#
+namespace: kube-system
+namespace_granted: default
+#
+service:
+  type: NodePort
+#
+deployment:
+  replicas: 3
+  checks: "true"
+#
+ports:
+  http_entrypoint:
+    port: 30080
+    name: http-ep
+  tcp_entrypoint:
+    port: 31521
+    name: tcp-ep
+#
+dashboard:
+  BackendPort: 8080
+  ServicePort: 80
+  ServiceName: t2-dashboard-svc
+  HealthCheckServiceName: t2-healthcheck-svc
+  IngressURL: dashboard.localhost.test
+  IngressRule: Host (`dashboard.localhost.test`)
+  IngressName: t2-dashboard-ingress
+#
+logs:
+  logLevel: DEBUG

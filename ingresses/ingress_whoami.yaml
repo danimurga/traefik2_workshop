@@ -1,0 +1,15 @@
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: whoami-ingress
+  namespace: default
+spec:
+  entryPoints:
+    - http-ep
+  routes:
+  - match: Host(`whoami.localhost.test`)
+    kind: Rule
+    services:
+    - name: whoami
+      port: 80

@@ -1,0 +1,80 @@
+{{- if semverCompare "^1.9-0" .Capabilities.KubeVersion.GitVersion }}
+apiVersion: apps/v1
+{{- else }}
+apiVersion: apps/v1beta1
+{{- end }}
+kind: Deployment
+metadata:
+  name: {{ template "traefik.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ template "traefik.name" . }}
+    chart: {{ template "traefik.chart" . }}
+    release: {{ .Release.Name | quote }}
+    heritage: {{ .Release.Service | quote }}
+spec:
+  replicas: {{ default 1 .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "traefik.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "traefik.name" . }}
+        chart: {{ template "traefik.chart" . }}
+        release: {{ .Release.Name | quote }}
+        heritage: {{ .Release.Service | quote }}
+    spec:
+      serviceAccountName: {{ template "traefik.fullname" . }}
+      terminationGracePeriodSeconds: 60
+      containers:
+      - image: {{ .Values.image.name }}:{{ .Values.image.tag }}
+        name: {{ template "traefik.fullname" . }}
+        resources:
+        {{- if .Values.yaml }}
+        {{- if .Values.yaml.resources }}
+{{ toYaml .Values.yaml.resources | indent 10 }}
+        {{- end }}
+        {{- end }}
+    {{ if eq .Values.deployment.checks "true" }}
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: {{ .Values.dashboard.BackendPort }}
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: {{ .Values.dashboard.BackendPort }}
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+          {{- end }}
+        ports:
+        # HTTP entrypoint
+        - name:  {{ .Values.ports.http_entrypoint.name }}
+          containerPort: {{ .Values.ports.http_entrypoint.port }}
+          protocol: TCP
+        # TCP entrypoint
+        - name:  {{ .Values.ports.tcp_entrypoint.name }}
+          containerPort: {{ .Values.ports.tcp_entrypoint.port }}
+          protocol: TCP
+        # Traefik2 settings
+        args:
+          - "--entryPoints.{{ .Values.ports.http_entrypoint.name }}.address=:{{ .Values.ports.http_entrypoint.port }}"
+          - "--entryPoints.{{ .Values.ports.tcp_entrypoint.name }}.address=:{{ .Values.ports.tcp_entrypoint.port }}"
+          - "--api.dashboard=true"
+          - "--api.insecure=true"
+          - "--ping=true"
+          - "--providers.kubernetescrd"
+          - "--log.level={{ .Values.logs.logLevel }}"
+          - "--api"
+          - "--accesslog"
+

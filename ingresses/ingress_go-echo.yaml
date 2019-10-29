@@ -1,0 +1,15 @@
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+   name: go-echo-ingress
+   namespace: default
+spec:
+  entryPoints:
+    - tcp-ep
+  routes:
+  - match: HostSNI(`*`)
+    kind: Rule
+    services:
+    - name: tcp-echo-service
+      port: 2701
